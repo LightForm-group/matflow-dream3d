@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def quat2euler(quats, degrees=False, P=1):
     """Convert quaternions to Bunge-convention Euler angles.
 
@@ -83,3 +84,13 @@ def quat2euler(quats, degrees=False, P=1):
         euler_angles = np.rad2deg(euler_angles)
 
     return euler_angles
+
+
+def process_dream3D_euler_angles(euler_angles, degrees=False):
+    orientations = {
+        'type': 'euler',
+        'euler_degrees': degrees,
+        'euler_angles': euler_angles,
+        'unit_cell_alignment': {'x': 'a'},
+    }
+    return orientations
