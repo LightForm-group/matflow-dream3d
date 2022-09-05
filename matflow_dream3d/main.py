@@ -1248,6 +1248,33 @@ def write_visualise_volume_element_pipeline(path, volume_element):
     with Path(path).open('w') as fh:
         json.dump(pipeline, fh, indent=4)
 
+@input_mapper(
+    input_file="precipitates.txt",
+    task="generate_volume_element",
+    method="from_statistics_dual_phase_orientations"
+)
+@input_mapper(
+    input_file="precipitates.txt",
+    task="generate_volume_element",
+    method="from_statistics"
+)
+def write_precipitate_file(path, precipitates):
+    if precipitates:
+        with Path(path).open('wt') as fp:
+            fp.write(str(len(precipitates)) + '\n')
+            for i in precipitates:
+                fp.write(
+                    f"{i['phase_number']} "
+                    f"{i['position'][0]:.6f} {i['position'][1]:.6f} {i['position'][2]:.6f} "
+                    f"{i['major_semi_axis_length']:.6f} "
+                    f"{i['mid_semi_axis_length']:.6f} "
+                    f"{i['minor_semi_axis_length']:.6f} "
+                    f"{i.get('omega3', 1):.6f} "
+                    f"{i['euler_angle'][0]:.6f} "
+                    f"{i['euler_angle'][1]:.6f} "
+                    f"{i['euler_angle'][2]:.6f}\n"
+                )
+
 
 @input_mapper(
     input_file='pipeline.json',
@@ -1262,6 +1289,7 @@ def generate_RVE_from_statistics_dual_phase_pipeline_writer(
     origin,
     periodic,
     phase_statistics,
+    precipitates,
 ):
     return generate_RVE_from_statistics_pipeline_writer(
         path,
@@ -1271,6 +1299,7 @@ def generate_RVE_from_statistics_dual_phase_pipeline_writer(
         origin,
         periodic,
         phase_statistics,
+        precipitates,
         orientations=None,
     )
 
@@ -1288,6 +1317,7 @@ def generate_RVE_from_statistics_pipeline_writer(
     origin,
     periodic,
     phase_statistics,
+    precipitates,
     orientations,
 ):
 
@@ -1938,6 +1968,11 @@ def generate_RVE_from_statistics_pipeline_writer(
     for idx, i in enumerate(stats_JSON, start=1):
         stats_data_array.update({str(idx): i})
 
+    if precipitates:
+        precip_inp_file = str(Path(path).parent.joinpath('precipitates.txt'))
+    else:
+        precip_inp_file = ""
+
     pipeline = {
         "0": {
             "CellEnsembleAttributeMatrixName": "CellEnsembleData",
@@ -2093,7 +2128,7 @@ def generate_RVE_from_statistics_pipeline_writer(
                 "Data Array Name": "Phases",
                 "Data Container Name": "SyntheticVolumeDataContainer"
             },
-            "FeatureGeneration": 0,
+            "FeatureGeneration": 1 if precipitates else 0, # bug? should be opposite?
             "FeatureIdsArrayPath": {
                 "Attribute Matrix Name": "CellData",
                 "Data Array Name": "FeatureIds",
@@ -2141,7 +2176,7 @@ def generate_RVE_from_statistics_pipeline_writer(
                 "Data Container Name": "SyntheticVolumeDataContainer"
             },
             "PeriodicBoundaries": int(periodic),
-            "PrecipInputFile": "",
+            "PrecipInputFile": precip_inp_file,
             "SaveGeometricDescriptions": 0,
             "SelectedAttributeMatrixPath": {
                 "Attribute Matrix Name": "",
